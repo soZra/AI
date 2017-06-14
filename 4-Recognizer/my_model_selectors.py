@@ -80,7 +80,7 @@ class SelectorBIC(ModelSelector):
         
         best_model = None
         lowest_BIC = float('inf')      # the lower the better
-        for n_components in range(self.min_n_components, self.max_n_components):
+        for n_components in range(self.min_n_components, self.max_n_components+1):
             try:
                 model = GaussianHMM(n_components).fit(self.X, self.lengths)
 
@@ -114,42 +114,41 @@ class SelectorDIC(ModelSelector):
 
         # TODO implement model selection based on DIC scores
 
-        best_component = 3
+        best_component = self.n_constant
         best_DIC = float('-inf')
 
 
-        for n_components in range(self.min_n_components, self.max_n_components):
+        for n_components in range(self.min_n_components, self.max_n_components+1):
 
             model = GaussianHMM(n_components)
-
+            
 
             try:
 
-                logL_thisWord = math.log(model.score(self.X, self.lengths))
+                logL_thisWord = model.score(self.X, self.lengths)
                 logL_otherWords = 0     
-                M = 0       # M in the equation
 
                 for otherWord in self.words:      # the sum of other words' logl
                     if otherWord == self.this_word:       # skip this word
                         continue
                     x_otherWords, lengths_otherWords = self.hwords[otherWord]
-                    logL_otherWords += math.log(model.score(x_otherWords, lengths_otherWords))
-                    M += 1         # counting
+                    logL_otherWords += model.score(x_otherWords, lengths_otherWords)
+                   
 
 
-                DIC = logL_thisWord - logL_otherWords / M
+                DIC = logL_thisWord - logL_otherWords / (len(self.words)-1)
 
                 if best_DIC < DIC:          # the higher the better
                     best_DIC = DIC
                     best_component = n_components
 
             except:
-                break
+                continue
 
 
             
 
-        return GaussianHMM(best_component)
+        return GaussianHMM(best_component).fit(self.X,self.lengths)
 
 
 class SelectorCV(ModelSelector):
